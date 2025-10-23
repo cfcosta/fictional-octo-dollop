@@ -1,10 +1,13 @@
 mod data;
 
+use std::io;
+
+use csv::{Reader, Writer};
 use data::*;
 
 fn apply(state: &mut State, input: Input) {
     let id = input.client as usize;
-    state.id[id] = input.client;
+    state.id[id] = Some(input.client);
 
     match input.kind {
         InputType::Deposit => {
@@ -30,26 +33,34 @@ fn apply(state: &mut State, input: Input) {
     }
 }
 
-fn main() {
-    let file = vec![];
+#[derive(Debug, thiserror::Error)]
+pub enum Error {
+    #[error("CSV error: {0}")]
+    CSV(#[from] csv::Error),
+
+    #[error("I/O error: {0}")]
+    Io(#[from] std::io::Error),
+}
+
+fn main() -> Result<(), Error> {
+    let mut reader = Reader::from_reader(io::stdin());
     let mut state = State::default();
 
-    for input in file {
-        apply(&mut state, input);
+    for input in reader.deserialize() {
+        apply(&mut state, input?);
     }
 
-    for ((((id, available), held), total), locked) in state
-        .id
-        .into_iter()
-        .zip(state.available.into_iter())
-        .zip(state.held.into_iter())
-        .zip(state.total.into_iter())
-        .zip(state.locked)
-    {
-        assert_eq!(available, total - held);
-        assert_eq!(held, total - available);
-        assert_eq!(total, available + held);
+    let mut writer = Writer::from_writer(io::stdout());
 
-        println!("{id},{available},{held},{locked}");
+    for row in state {
+        assert_eq!(row.available, row.total - row.held);
+        assert_eq!(row.held, row.total - row.available);
+        assert_eq!(row.total, row.available + row.held);
+
+        writer.serialize(row)?;
     }
+
+    writer.flush()?;
+
+    Ok(())
 }
