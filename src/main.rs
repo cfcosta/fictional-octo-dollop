@@ -44,11 +44,24 @@ fn apply(state: &mut State, input: Input) -> Result<()> {
             state.total[id] += amount;
         }
         InputType::Withdrawal => {
+            match (
+                state.available[id].checked_sub(amount),
+                state.total[id].checked_sub(amount),
+            ) {
+                (Some(available), Some(total)) => {
+                    state.available[id] = available;
+                    state.total[id] = total;
+                }
+                _ => {
+                    return Ok(());
+                }
+            }
+
             match state.transactions.get(&input.transaction_id) {
                 Some(_) => {
                     return Err(Error::DuplicateTransaction {
                         transaction_id: input.transaction_id,
-                        amount: amount,
+                        amount,
                     });
                 }
                 None => {
@@ -61,86 +74,79 @@ fn apply(state: &mut State, input: Input) -> Result<()> {
                     );
                 }
             }
-
-            match (
-                state.available[id].checked_sub(amount),
-                state.total[id].checked_sub(amount),
-            ) {
-                (Some(available), Some(total)) => {
-                    state.available[id] = available;
-                    state.total[id] -= total;
-                }
-                _ => {
-                    return Err(Error::InsufficientBalance {
-                        transaction_id: input.transaction_id,
-                        expected: amount,
-                        got: state.available[id],
-                    });
-                }
-            }
         }
         InputType::Dispute => {
-            if let Some(tx) = state.transactions.get_mut(&input.transaction_id)
-                && tx.status == TransactionStatus::Open
-            {
-                tx.status = TransactionStatus::Disputed;
-            } else {
-                return Ok(());
-            }
+            let tx = match state.transactions.get_mut(&input.transaction_id) {
+                Some(tx) if tx.status == TransactionStatus::Open => tx,
+                _ => {
+                    return Ok(());
+                }
+            };
 
-            match state.available[id].checked_sub(amount) {
+            tx.status = TransactionStatus::Disputed;
+
+            match state.available[id].checked_sub(tx.amount) {
                 Some(available) => {
                     state.available[id] = available;
-                    state.held[id] += amount;
+                    state.held[id] += tx.amount;
                 }
                 _ => {
                     return Err(Error::InsufficientBalance {
                         transaction_id: input.transaction_id,
-                        expected: amount,
+                        expected: tx.amount,
                         got: state.available[id],
                     });
                 }
             }
         }
         InputType::Resolve => {
-            if let Some(tx) = state.transactions.get_mut(&input.transaction_id)
-            {
-                if tx.status != TransactionStatus::Disputed {
+            let tx = match state.transactions.get_mut(&input.transaction_id) {
+                Some(tx) if tx.status == TransactionStatus::Disputed => tx,
+                _ => {
                     return Ok(());
                 }
+            };
 
-                tx.status = TransactionStatus::Resolved;
+            tx.status = TransactionStatus::Resolved;
 
-                match state.held[id].checked_sub(tx.amount) {
-                    Some(held) => {
-                        state.held[id] -= held;
-                        state.available[id] += held;
-                    }
-                    None => {
-                        return Err(Error::InsufficientBalance {
-                            transaction_id: input.transaction_id,
-                            expected: tx.amount,
-                            got: state.held[id],
-                        });
-                    }
+            match state.held[id].checked_sub(tx.amount) {
+                Some(held) => {
+                    state.held[id] = held;
+                    state.available[id] += tx.amount;
                 }
-            }
-        }
-        InputType::Chargeback => {
-            if let Some(tx) = state.transactions.get_mut(&input.transaction_id)
-                && tx.status == TransactionStatus::Disputed
-            {
-                tx.status = TransactionStatus::Chargedback;
-
-                if state.held[id] >= tx.amount {
-                    state.held[id] -= tx.amount;
-                    state.total[id] -= tx.amount;
-                    state.locked[id] = true;
-                } else {
+                None => {
                     return Err(Error::InsufficientBalance {
                         transaction_id: input.transaction_id,
                         expected: tx.amount,
                         got: state.held[id],
+                    });
+                }
+            }
+        }
+        InputType::Chargeback => {
+            let tx = match state.transactions.get_mut(&input.transaction_id) {
+                Some(tx) if tx.status == TransactionStatus::Disputed => tx,
+                _ => {
+                    return Ok(());
+                }
+            };
+
+            tx.status = TransactionStatus::Chargedback;
+
+            match (
+                state.held[id].checked_sub(tx.amount),
+                state.total[id].checked_sub(tx.amount),
+            ) {
+                (Some(held), Some(total)) => {
+                    state.held[id] = held;
+                    state.total[id] = total;
+                    state.locked[id] = true;
+                }
+                _ => {
+                    return Err(Error::InsufficientBalance {
+                        transaction_id: input.transaction_id,
+                        expected: tx.amount,
+                        got: state.available[id],
                     });
                 }
             }
@@ -162,7 +168,16 @@ fn main() -> Result<()> {
     let mut state = State::default();
 
     for input in reader.deserialize() {
-        apply(&mut state, input?)?;
+        let input = input?;
+
+        match apply(&mut state, input) {
+            Ok(_) => {}
+            Err(err) => {
+                eprintln!(
+                    "Got an error when processing input, skipping.\nRow: {input:?}\nError: {err}"
+                );
+            }
+        }
     }
 
     let mut writer = Writer::from_writer(io::stdout());

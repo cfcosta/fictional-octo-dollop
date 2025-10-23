@@ -25,7 +25,8 @@ pub struct Input {
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 pub struct Row {
-    pub id: u16,
+    #[serde(rename = "client")]
+    pub client_id: u16,
     pub available: Decimal,
     pub held: Decimal,
     pub total: Decimal,
@@ -112,7 +113,7 @@ impl Iterator for StateIter {
 
             if let Some(id) = id {
                 return Some(Row {
-                    id,
+                    client_id: id,
                     available,
                     held,
                     total,
