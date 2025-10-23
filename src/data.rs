@@ -27,8 +27,11 @@ pub struct Input {
 pub struct Row {
     #[serde(rename = "client")]
     pub client_id: u16,
+    #[serde(serialize_with = "round_amount")]
     pub available: Decimal,
+    #[serde(serialize_with = "round_amount")]
     pub held: Decimal,
+    #[serde(serialize_with = "round_amount")]
     pub total: Decimal,
     pub locked: bool,
 }
@@ -124,4 +127,12 @@ impl Iterator for StateIter {
 
         None
     }
+}
+
+fn round_amount<S: serde::Serializer>(
+    d: &Decimal,
+    s: S,
+) -> Result<S::Ok, S::Error> {
+    let q = d.round_dp(4);
+    s.serialize_str(&format!("{:.4}", q))
 }
