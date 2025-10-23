@@ -15,6 +15,12 @@ This is a simple, toy payments engine to read a series of transactions from a CS
 - Errors are handled through the `Error` enum (using `thiserror` to avoid most of the error generating boilerplate).
 - The dataset is read as a stream, applying each item directly. A more complicated operation (one that would take data simultaneously from multiple TCP connections for example) would still require atomicity on inserting, probably consuming the data from channels as they come, and processing them on a single thread. This is the default behavior for other ledger implementations (like [TigerBeetleDB](https://tigerbeetle.com/)).
 
+## Known Issues
+
+- We do not check if refund/chargebacks/resolve transactions point to the correct client, only that it points to a correct, existing transaction.
+- We allow disputes to both withdrawals and deposits, but in most cases only deposits make sense as targets for disputes.
+
+
 ## AI Usage
 
 Keeping with the spirit of the project, no AI code has been used to write this program.
