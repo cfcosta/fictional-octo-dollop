@@ -1,7 +1,7 @@
 mod data;
 mod error;
 
-use std::io;
+use std::{env, fs, io};
 
 use csv::{ReaderBuilder, Trim, Writer};
 use data::*;
@@ -149,9 +149,14 @@ fn apply(state: &mut State, input: Input) -> Result<()> {
 }
 
 fn main() -> Result<()> {
-    let mut reader = ReaderBuilder::new()
-        .trim(Trim::All)
-        .from_reader(io::stdin());
+    let args = env::args().skip(1).collect::<Vec<_>>();
+    let file = args
+        .first()
+        .ok_or(Error::MissingInputFile)
+        .and_then(|f| fs::File::open(f).map_err(Error::from))?;
+
+    let mut reader = ReaderBuilder::new().trim(Trim::All).from_reader(file);
+
     let mut state = State::default();
 
     for input in reader.deserialize() {

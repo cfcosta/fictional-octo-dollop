@@ -4,6 +4,9 @@ pub type Result<T> = std::result::Result<T, Error>;
 
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
+    #[error("Missing input file on argument list")]
+    MissingInputFile,
+
     #[error("Duplicate transaction: {transaction_id} {amount}")]
     DuplicateTransaction {
         transaction_id: u32,
