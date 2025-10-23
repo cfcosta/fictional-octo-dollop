@@ -3,7 +3,7 @@ mod error;
 
 use std::{env, fs, io};
 
-use csv::{ReaderBuilder, Trim, Writer};
+use csv::{ReaderBuilder, Trim, WriterBuilder};
 use data::*;
 use error::*;
 
@@ -29,7 +29,7 @@ fn apply(state: &mut State, input: Input) -> Result<()> {
                 });
             }
 
-            if state.transactions.get(&input.transaction_id).is_some() {
+            if state.transactions.contains_key(&input.transaction_id) {
                 return Err(Error::DuplicateTransaction {
                     transaction_id: input.transaction_id,
                     amount,
@@ -55,7 +55,7 @@ fn apply(state: &mut State, input: Input) -> Result<()> {
                 });
             }
 
-            if state.transactions.get(&input.transaction_id).is_some() {
+            if state.transactions.contains_key(&input.transaction_id) {
                 return Err(Error::DuplicateTransaction {
                     transaction_id: input.transaction_id,
                     amount,
@@ -179,7 +179,9 @@ fn main() -> Result<()> {
         }
     }
 
-    let mut writer = Writer::from_writer(io::stdout());
+    let mut writer = WriterBuilder::new()
+        .has_headers(true)
+        .from_writer(io::stdout());
 
     for row in state {
         assert_eq!(row.available, row.total - row.held);
