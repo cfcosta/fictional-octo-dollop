@@ -1,4 +1,4 @@
-use std::vec::IntoIter;
+use std::{collections::HashMap, vec::IntoIter};
 
 use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
@@ -32,6 +32,20 @@ pub struct Row {
     pub locked: bool,
 }
 
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+pub enum TransactionStatus {
+    Open,
+    Disputed,
+    Chargedback,
+    Resolved,
+}
+
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+pub struct Transaction {
+    pub amount: Decimal,
+    pub status: TransactionStatus,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct State {
     pub id: Vec<Option<u16>>,
@@ -39,6 +53,8 @@ pub struct State {
     pub held: Vec<Decimal>,
     pub total: Vec<Decimal>,
     pub locked: Vec<bool>,
+
+    pub transactions: HashMap<u32, Transaction>,
 }
 
 impl Default for State {
@@ -49,6 +65,8 @@ impl Default for State {
             held: vec![Decimal::ZERO; u16::MAX as usize],
             total: vec![Decimal::ZERO; u16::MAX as usize],
             locked: vec![false; u16::MAX as usize],
+
+            transactions: Default::default(),
         }
     }
 }

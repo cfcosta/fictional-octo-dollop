@@ -4,6 +4,7 @@
 
 - There's nothing on the documentation standing that zero is a valid `client id`, and the examples themselves start at 1.
 - Since we have a hard limit on the account id of `u16`, pre-allocating ALL state should take up to 4.14mb.
+- We fail on duplicate transactions, instead of ignoring them.
 
 ## Definitions
 
