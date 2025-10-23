@@ -62,25 +62,17 @@ fn apply(state: &mut State, input: Input) -> Result<()> {
                 });
             }
 
-            match (
-                state.available[id].checked_sub(amount),
-                state.total[id].checked_sub(amount),
-            ) {
-                (Some(available), Some(total)) => {
-                    state.available[id] = available;
-                    state.total[id] = total;
+            if state.available[id] >= amount && state.total[id] >= amount {
+                state.available[id] -= amount;
+                state.total[id] -= amount;
 
-                    state.transactions.insert(
-                        input.transaction_id,
-                        Transaction {
-                            amount,
-                            status: TransactionStatus::Open,
-                        },
-                    );
-                }
-                _ => {
-                    return Ok(());
-                }
+                state.transactions.insert(
+                    input.transaction_id,
+                    Transaction {
+                        amount,
+                        status: TransactionStatus::Open,
+                    },
+                );
             }
         }
         InputType::Dispute => {
@@ -93,10 +85,16 @@ fn apply(state: &mut State, input: Input) -> Result<()> {
 
             tx.status = TransactionStatus::Disputed;
 
-            state.available[id] = state.available[id]
-                .checked_sub(tx.amount)
-                .unwrap_or_default();
-            state.held[id] += tx.amount;
+            if state.available[id] >= tx.amount {
+                state.available[id] -= tx.amount;
+                state.held[id] += tx.amount;
+            } else {
+                return Err(Error::InsufficientBalance {
+                    transaction_id: input.transaction_id,
+                    expected: tx.amount,
+                    got: state.available[id],
+                });
+            }
         }
         InputType::Resolve => {
             let tx = match state.transactions.get_mut(&input.transaction_id) {
@@ -108,18 +106,15 @@ fn apply(state: &mut State, input: Input) -> Result<()> {
 
             tx.status = TransactionStatus::Resolved;
 
-            match state.held[id].checked_sub(tx.amount) {
-                Some(held) => {
-                    state.held[id] = held;
-                    state.available[id] += tx.amount;
-                }
-                None => {
-                    return Err(Error::InsufficientBalance {
-                        transaction_id: input.transaction_id,
-                        expected: tx.amount,
-                        got: state.held[id],
-                    });
-                }
+            if state.held[id] >= tx.amount {
+                state.held[id] -= tx.amount;
+                state.available[id] += tx.amount;
+            } else {
+                return Err(Error::InsufficientBalance {
+                    transaction_id: input.transaction_id,
+                    expected: tx.amount,
+                    got: state.held[id],
+                });
             }
         }
         InputType::Chargeback => {
@@ -132,22 +127,16 @@ fn apply(state: &mut State, input: Input) -> Result<()> {
 
             tx.status = TransactionStatus::Chargedback;
 
-            match (
-                state.held[id].checked_sub(tx.amount),
-                state.total[id].checked_sub(tx.amount),
-            ) {
-                (Some(held), Some(total)) => {
-                    state.held[id] = held;
-                    state.total[id] = total;
-                    state.locked[id] = true;
-                }
-                _ => {
-                    return Err(Error::InsufficientBalance {
-                        transaction_id: input.transaction_id,
-                        expected: tx.amount,
-                        got: state.held[id],
-                    });
-                }
+            if state.held[id] >= tx.amount && state.total[id] >= tx.amount {
+                state.held[id] -= tx.amount;
+                state.total[id] -= tx.amount;
+                state.locked[id] = true;
+            } else {
+                return Err(Error::InsufficientBalance {
+                    transaction_id: input.transaction_id,
+                    expected: tx.amount,
+                    got: state.held[id],
+                });
             }
         }
     }
