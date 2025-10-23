@@ -1,5 +1,6 @@
 use std::vec::IntoIter;
 
+use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
@@ -17,26 +18,26 @@ pub struct Input {
     #[serde(rename = "type")]
     pub kind: InputType,
     pub client: u16,
-    pub amount: u64,
     #[serde(rename = "tx")]
     pub transaction_id: u32,
+    pub amount: Decimal,
 }
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 pub struct Row {
     pub id: u16,
-    pub available: u64,
-    pub held: u64,
-    pub total: u64,
+    pub available: Decimal,
+    pub held: Decimal,
+    pub total: Decimal,
     pub locked: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct State {
     pub id: Vec<Option<u16>>,
-    pub available: Vec<u64>,
-    pub held: Vec<u64>,
-    pub total: Vec<u64>,
+    pub available: Vec<Decimal>,
+    pub held: Vec<Decimal>,
+    pub total: Vec<Decimal>,
     pub locked: Vec<bool>,
 }
 
@@ -44,9 +45,9 @@ impl Default for State {
     fn default() -> Self {
         Self {
             id: vec![None; u16::MAX as usize],
-            available: vec![0; u16::MAX as usize],
-            held: vec![0; u16::MAX as usize],
-            total: vec![0; u16::MAX as usize],
+            available: vec![Decimal::ZERO; u16::MAX as usize],
+            held: vec![Decimal::ZERO; u16::MAX as usize],
+            total: vec![Decimal::ZERO; u16::MAX as usize],
             locked: vec![false; u16::MAX as usize],
         }
     }
@@ -54,9 +55,9 @@ impl Default for State {
 
 pub struct StateIter {
     id: IntoIter<Option<u16>>,
-    available: IntoIter<u64>,
-    held: IntoIter<u64>,
-    total: IntoIter<u64>,
+    available: IntoIter<Decimal>,
+    held: IntoIter<Decimal>,
+    total: IntoIter<Decimal>,
     locked: IntoIter<bool>,
 }
 
