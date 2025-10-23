@@ -20,7 +20,7 @@ pub struct Input {
     pub client: u16,
     #[serde(rename = "tx")]
     pub transaction_id: u32,
-    pub amount: Decimal,
+    pub amount: Option<Decimal>,
 }
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]

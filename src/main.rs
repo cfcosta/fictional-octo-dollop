@@ -18,42 +18,44 @@ fn apply(state: &mut State, input: Input) -> Result<()> {
         });
     }
 
+    let amount = input.amount.unwrap_or_default();
+
     match input.kind {
         InputType::Deposit => {
             match state.transactions.get(&input.transaction_id) {
                 Some(_) => {
                     return Err(Error::DuplicateTransaction {
                         transaction_id: input.transaction_id,
-                        amount: input.amount,
+                        amount,
                     });
                 }
                 None => {
                     state.transactions.insert(
                         input.transaction_id,
                         Transaction {
-                            amount: input.amount,
+                            amount,
                             status: TransactionStatus::Open,
                         },
                     );
                 }
             }
 
-            state.available[id] += input.amount;
-            state.total[id] += input.amount;
+            state.available[id] += amount;
+            state.total[id] += amount;
         }
         InputType::Withdrawal => {
             match state.transactions.get(&input.transaction_id) {
                 Some(_) => {
                     return Err(Error::DuplicateTransaction {
                         transaction_id: input.transaction_id,
-                        amount: input.amount,
+                        amount: amount,
                     });
                 }
                 None => {
                     state.transactions.insert(
                         input.transaction_id,
                         Transaction {
-                            amount: input.amount,
+                            amount,
                             status: TransactionStatus::Open,
                         },
                     );
@@ -61,8 +63,8 @@ fn apply(state: &mut State, input: Input) -> Result<()> {
             }
 
             match (
-                state.available[id].checked_sub(input.amount),
-                state.total[id].checked_sub(input.amount),
+                state.available[id].checked_sub(amount),
+                state.total[id].checked_sub(amount),
             ) {
                 (Some(available), Some(total)) => {
                     state.available[id] = available;
@@ -71,7 +73,7 @@ fn apply(state: &mut State, input: Input) -> Result<()> {
                 _ => {
                     return Err(Error::InsufficientBalance {
                         transaction_id: input.transaction_id,
-                        expected: input.amount,
+                        expected: amount,
                         got: state.available[id],
                     });
                 }
@@ -86,15 +88,15 @@ fn apply(state: &mut State, input: Input) -> Result<()> {
                 return Ok(());
             }
 
-            match state.available[id].checked_sub(input.amount) {
+            match state.available[id].checked_sub(amount) {
                 Some(available) => {
                     state.available[id] = available;
-                    state.held[id] += input.amount;
+                    state.held[id] += amount;
                 }
                 _ => {
                     return Err(Error::InsufficientBalance {
                         transaction_id: input.transaction_id,
-                        expected: input.amount,
+                        expected: amount,
                         got: state.available[id],
                     });
                 }
