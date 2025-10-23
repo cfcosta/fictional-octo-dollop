@@ -2,7 +2,7 @@ mod data;
 
 use std::io;
 
-use csv::{Reader, Writer};
+use csv::{ReaderBuilder, Trim, Writer};
 use data::*;
 
 fn apply(state: &mut State, input: Input) {
@@ -43,7 +43,9 @@ pub enum Error {
 }
 
 fn main() -> Result<(), Error> {
-    let mut reader = Reader::from_reader(io::stdin());
+    let mut reader = ReaderBuilder::new()
+        .trim(Trim::All)
+        .from_reader(io::stdin());
     let mut state = State::default();
 
     for input in reader.deserialize() {
