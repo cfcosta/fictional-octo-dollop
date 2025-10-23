@@ -63,12 +63,14 @@ pub struct State {
 
 impl Default for State {
     fn default() -> Self {
+        let total = u16::MAX as usize + 1;
+
         Self {
-            id: vec![None; u16::MAX as usize],
-            available: vec![Decimal::ZERO; u16::MAX as usize],
-            held: vec![Decimal::ZERO; u16::MAX as usize],
-            total: vec![Decimal::ZERO; u16::MAX as usize],
-            locked: vec![false; u16::MAX as usize],
+            id: vec![None; total],
+            available: vec![Decimal::ZERO; total],
+            held: vec![Decimal::ZERO; total],
+            total: vec![Decimal::ZERO; total],
+            locked: vec![false; total],
 
             transactions: Default::default(),
         }
