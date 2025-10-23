@@ -79,19 +79,10 @@ fn apply(state: &mut State, input: Input) -> Result<()> {
 
             tx.status = TransactionStatus::Disputed;
 
-            match state.available[id].checked_sub(tx.amount) {
-                Some(available) => {
-                    state.available[id] = available;
-                    state.held[id] += tx.amount;
-                }
-                _ => {
-                    return Err(Error::InsufficientBalance {
-                        transaction_id: input.transaction_id,
-                        expected: tx.amount,
-                        got: state.available[id],
-                    });
-                }
-            }
+            state.available[id] = state.available[id]
+                .checked_sub(tx.amount)
+                .unwrap_or_default();
+            state.held[id] += tx.amount;
         }
         InputType::Resolve => {
             let tx = match state.transactions.get_mut(&input.transaction_id) {
@@ -140,7 +131,7 @@ fn apply(state: &mut State, input: Input) -> Result<()> {
                     return Err(Error::InsufficientBalance {
                         transaction_id: input.transaction_id,
                         expected: tx.amount,
-                        got: state.available[id],
+                        got: state.held[id],
                     });
                 }
             }
