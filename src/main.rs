@@ -83,11 +83,11 @@ fn apply(state: &mut State, input: Input) -> Result<()> {
                 }
             };
 
-            tx.status = TransactionStatus::Disputed;
-
             if state.available[id] >= tx.amount {
                 state.available[id] -= tx.amount;
                 state.held[id] += tx.amount;
+
+                tx.status = TransactionStatus::Disputed;
             } else {
                 return Err(Error::InsufficientBalance {
                     transaction_id: input.transaction_id,
@@ -104,11 +104,11 @@ fn apply(state: &mut State, input: Input) -> Result<()> {
                 }
             };
 
-            tx.status = TransactionStatus::Resolved;
-
             if state.held[id] >= tx.amount {
                 state.held[id] -= tx.amount;
                 state.available[id] += tx.amount;
+
+                tx.status = TransactionStatus::Resolved;
             } else {
                 return Err(Error::InsufficientBalance {
                     transaction_id: input.transaction_id,
@@ -131,6 +131,8 @@ fn apply(state: &mut State, input: Input) -> Result<()> {
                 state.held[id] -= tx.amount;
                 state.total[id] -= tx.amount;
                 state.locked[id] = true;
+
+                tx.status = TransactionStatus::Chargedback;
             } else {
                 return Err(Error::InsufficientBalance {
                     transaction_id: input.transaction_id,
