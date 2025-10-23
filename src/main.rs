@@ -69,19 +69,19 @@ fn apply(state: &mut State, input: Input) -> Result<()> {
                 (Some(available), Some(total)) => {
                     state.available[id] = available;
                     state.total[id] = total;
+
+                    state.transactions.insert(
+                        input.transaction_id,
+                        Transaction {
+                            amount,
+                            status: TransactionStatus::Open,
+                        },
+                    );
                 }
                 _ => {
                     return Ok(());
                 }
             }
-
-            state.transactions.insert(
-                input.transaction_id,
-                Transaction {
-                    amount,
-                    status: TransactionStatus::Open,
-                },
-            );
         }
         InputType::Dispute => {
             let tx = match state.transactions.get_mut(&input.transaction_id) {
@@ -162,7 +162,10 @@ fn main() -> Result<()> {
         .ok_or(Error::MissingInputFile)
         .and_then(|f| fs::File::open(f).map_err(Error::from))?;
 
-    let mut reader = ReaderBuilder::new().trim(Trim::All).from_reader(file);
+    let mut reader = ReaderBuilder::new()
+        .flexible(true)
+        .trim(Trim::All)
+        .from_reader(file);
 
     let mut state = State::default();
 
