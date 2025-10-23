@@ -22,6 +22,13 @@ fn apply(state: &mut State, input: Input) -> Result<()> {
 
     match input.kind {
         InputType::Deposit => {
+            if amount.is_zero() {
+                return Err(Error::InvalidTransaction {
+                    transaction_id: input.transaction_id,
+                    reason: "Deposit amount can not be zero",
+                });
+            }
+
             if state.transactions.get(&input.transaction_id).is_some() {
                 return Err(Error::DuplicateTransaction {
                     transaction_id: input.transaction_id,
@@ -41,6 +48,13 @@ fn apply(state: &mut State, input: Input) -> Result<()> {
             );
         }
         InputType::Withdrawal => {
+            if amount.is_zero() {
+                return Err(Error::InvalidTransaction {
+                    transaction_id: input.transaction_id,
+                    reason: "Withdrawal amount can not be zero",
+                });
+            }
+
             if state.transactions.get(&input.transaction_id).is_some() {
                 return Err(Error::DuplicateTransaction {
                     transaction_id: input.transaction_id,

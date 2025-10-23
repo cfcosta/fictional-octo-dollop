@@ -7,6 +7,12 @@ pub enum Error {
     #[error("Missing input file on argument list")]
     MissingInputFile,
 
+    #[error("Invalid transaction {transaction_id}: {reason}")]
+    InvalidTransaction {
+        transaction_id: u32,
+        reason: &'static str,
+    },
+
     #[error("Duplicate transaction: {transaction_id} {amount}")]
     DuplicateTransaction {
         transaction_id: u32,
