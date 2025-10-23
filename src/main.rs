@@ -22,28 +22,32 @@ fn apply(state: &mut State, input: Input) -> Result<()> {
 
     match input.kind {
         InputType::Deposit => {
-            match state.transactions.get(&input.transaction_id) {
-                Some(_) => {
-                    return Err(Error::DuplicateTransaction {
-                        transaction_id: input.transaction_id,
-                        amount,
-                    });
-                }
-                None => {
-                    state.transactions.insert(
-                        input.transaction_id,
-                        Transaction {
-                            amount,
-                            status: TransactionStatus::Open,
-                        },
-                    );
-                }
+            if state.transactions.get(&input.transaction_id).is_some() {
+                return Err(Error::DuplicateTransaction {
+                    transaction_id: input.transaction_id,
+                    amount,
+                });
             }
 
             state.available[id] += amount;
             state.total[id] += amount;
+
+            state.transactions.insert(
+                input.transaction_id,
+                Transaction {
+                    amount,
+                    status: TransactionStatus::Open,
+                },
+            );
         }
         InputType::Withdrawal => {
+            if state.transactions.get(&input.transaction_id).is_some() {
+                return Err(Error::DuplicateTransaction {
+                    transaction_id: input.transaction_id,
+                    amount,
+                });
+            }
+
             match (
                 state.available[id].checked_sub(amount),
                 state.total[id].checked_sub(amount),
@@ -57,23 +61,13 @@ fn apply(state: &mut State, input: Input) -> Result<()> {
                 }
             }
 
-            match state.transactions.get(&input.transaction_id) {
-                Some(_) => {
-                    return Err(Error::DuplicateTransaction {
-                        transaction_id: input.transaction_id,
-                        amount,
-                    });
-                }
-                None => {
-                    state.transactions.insert(
-                        input.transaction_id,
-                        Transaction {
-                            amount,
-                            status: TransactionStatus::Open,
-                        },
-                    );
-                }
-            }
+            state.transactions.insert(
+                input.transaction_id,
+                Transaction {
+                    amount,
+                    status: TransactionStatus::Open,
+                },
+            );
         }
         InputType::Dispute => {
             let tx = match state.transactions.get_mut(&input.transaction_id) {
