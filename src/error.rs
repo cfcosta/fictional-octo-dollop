@@ -4,20 +4,28 @@ pub type Result<T> = std::result::Result<T, Error>;
 
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
-    #[error("Duplicate transaction: {id} {amount}")]
-    DuplicateTransaction { id: u32, amount: Decimal },
+    #[error("Duplicate transaction: {transaction_id} {amount}")]
+    DuplicateTransaction {
+        transaction_id: u32,
+        amount: Decimal,
+    },
 
     #[error(
-        "Insufficient balance for transaction {id} (needed {expected}, got {got})"
+        "Insufficient balance for transaction {transaction_id} (expected {expected}, got {got})"
     )]
     InsufficientBalance {
-        id: u32,
+        transaction_id: u32,
         expected: Decimal,
         got: Decimal,
     },
 
+    #[error(
+        "Client {client_id} is locked, can not progress with transaction {transaction_id}"
+    )]
+    LockedUser { client_id: u16, transaction_id: u32 },
+
     #[error("CSV error: {0}")]
-    CSV(#[from] csv::Error),
+    Csv(#[from] csv::Error),
 
     #[error("I/O error: {0}")]
     Io(#[from] std::io::Error),

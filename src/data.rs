@@ -32,7 +32,7 @@ pub struct Row {
     pub locked: bool,
 }
 
-#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum TransactionStatus {
     Open,
     Disputed,
@@ -103,7 +103,7 @@ impl Iterator for StateIter {
     type Item = Row;
 
     fn next(&mut self) -> Option<Self::Item> {
-        while let Some(id) = self.id.next() {
+        for id in self.id.by_ref() {
             // Safety: We pre-construct the State directly, so we **know** those are correct.
             let available = self.available.next().unwrap();
             let held = self.held.next().unwrap();
