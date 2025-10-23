@@ -62,7 +62,7 @@ fn apply(state: &mut State, input: Input) -> Result<()> {
                 });
             }
 
-            if state.available[id] >= amount && state.total[id] >= amount {
+            if state.available[id] >= amount {
                 state.available[id] -= amount;
                 state.total[id] -= amount;
 
@@ -83,18 +83,10 @@ fn apply(state: &mut State, input: Input) -> Result<()> {
                 }
             };
 
-            if state.available[id] >= tx.amount {
-                state.available[id] -= tx.amount;
-                state.held[id] += tx.amount;
+            state.available[id] -= tx.amount;
+            state.held[id] += tx.amount;
 
-                tx.status = TransactionStatus::Disputed;
-            } else {
-                return Err(Error::InsufficientBalance {
-                    transaction_id: input.transaction_id,
-                    expected: tx.amount,
-                    got: state.available[id],
-                });
-            }
+            tx.status = TransactionStatus::Disputed;
         }
         InputType::Resolve => {
             let tx = match state.transactions.get_mut(&input.transaction_id) {
